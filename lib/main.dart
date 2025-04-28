@@ -33,6 +33,7 @@ class MyApp extends StatelessWidget {
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
+
 }
 
 class MyHomePage extends StatefulWidget {
@@ -88,6 +89,11 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
+        child: Card(
+          elevation: 4,
+        child:Container(
+          color:  Colors.deepPurple,
+          padding: EdgeInsets.all(16.0),
         child: Column(
           // Column is also a layout widget. It takes a list of children and
           // arranges them vertically. By default, it sizes itself to fit its
@@ -109,8 +115,13 @@ class _MyHomePageState extends State<MyHomePage> {
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
+            Text(
+              'John 3:16 - For God so loved the world...',
+              style: TextStyle(fontSize: 16),
+            ),
           ],
         ),
+      ),  ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _incrementCounter,
