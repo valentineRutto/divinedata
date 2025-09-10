@@ -1,8 +1,28 @@
 import 'package:flutter/material.dart';
-
+import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
-  runApp(const MyApp());
+  // Set up error handling
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    if (kReleaseMode) {
+      // In release mode, report to a logging service
+      // You could integrate with services like Firebase Crashlytics here
+    }
+  };
+
+  runZonedGuarded<Future<void>>(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    runApp(const MyApp());
+  }, (error, stackTrace) {
+    // Handle any errors not caught by the Flutter framework
+    debugPrint('Uncaught error: $error');
+    debugPrint(stackTrace.toString());
+    // You could log to a service here as well
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -12,7 +32,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Divine Data',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -29,9 +49,10 @@ class MyApp extends StatelessWidget {
         //
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Divine Data App'),
     );
   }
 
@@ -57,6 +78,50 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
+  String _verseText = 'John 3:16 - For God so loved the world...';
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    // You could fetch data here if needed
+    // _fetchVerseData();
+  }
+
+  // Example of how to handle API requests with error handling
+  Future<void> _fetchVerseData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Example of how you might fetch data
+      // final response = await http.get(Uri.parse('https://api.example.com/verse'));
+      // 
+      // if (response.statusCode == 200) {
+      //   final data = jsonDecode(response.body);
+      //   setState(() {
+      //     _verseText = data['verse'];
+      //     _isLoading = false;
+      //   });
+      // } else {
+      //   throw Exception('Failed to load verse: ${response.statusCode}');
+      // }
+      
+      // Simulating a delay
+      await Future.delayed(Duration(seconds: 1));
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
 
   void _incrementCounter() {
     setState(() {
@@ -91,11 +156,20 @@ class _MyHomePageState extends State<MyHomePage> {
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
         child: Card(
-          elevation: 4,
-        child:Container(
-          color:  Colors.deepPurple,
-          padding: EdgeInsets.all(16.0),
-        child: Column(
+          elevation: 6,
+          margin: EdgeInsets.all(16.0),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.indigo.shade300, Colors.indigo.shade800],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12.0),
+            ),
+            padding: EdgeInsets.all(20.0),
+            child: Column(
           // Column is also a layout widget. It takes a list of children and
           // arranges them vertically. By default, it sizes itself to fit its
           // children horizontally, and tries to be as tall as its parent.
@@ -110,24 +184,63 @@ class _MyHomePageState extends State<MyHomePage> {
           // action in the IDE, or press "p" in the console), to see the
           // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Text('You have pushed the button this many times:'),
+            const Text(
+              'You have pushed the button this many times:',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
             Text(
               '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 48,
+              ),
             ),
-            Text(
-              'John 3:16 - For God so loved the world...',
-              style: TextStyle(fontSize: 16),
-            ),
+            const SizedBox(height: 20),
+            if (_isLoading)
+              const CircularProgressIndicator(color: Colors.white)
+            else if (_errorMessage != null)
+              Container(
+                padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _errorMessage!,
+                  style: TextStyle(fontSize: 16, color: Colors.white, fontStyle: FontStyle.italic),
+                  textAlign: TextAlign.center,
+                ),
+              )
+            else
+              Container(
+                padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _verseText,
+                  style: TextStyle(fontSize: 16, color: Colors.white, fontStyle: FontStyle.italic),
+                  textAlign: TextAlign.center,
+                ),
+              ),
           ],
+            ),
+          ),
         ),
-      ),  ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _incrementCounter,
         tooltip: 'Increment',
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: const Text('Increment'),
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
