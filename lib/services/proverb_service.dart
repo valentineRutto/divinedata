@@ -4,7 +4,9 @@ import 'package:http/http.dart' as http;
 
 class ProverbService {
 
-  static const String _apiKey = "d9b815a0c06343044328459269921da184994761";
+ final String _apiKey;
+ ProverbService(this._apiKey);
+
   static const String _apiUrl = "https://api.esv.org/v3/passage/text/";
 
   // Length of each chapter in Proverbs (index 0 = chapter 1)

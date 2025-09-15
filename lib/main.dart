@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'services/proverb_service.dart';
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'services/gpt_service.dart';
 
 void main() {
   // Set up error handling
@@ -18,6 +17,9 @@ void main() {
 
   runZonedGuarded<Future<void>>(() async {
     WidgetsFlutterBinding.ensureInitialized();
+
+    await dotenv.load(fileName: ".env");
+
     runApp(const MyApp());
   }, (error, stackTrace) {
     // Handle any errors not caught by the Flutter framework
@@ -79,48 +81,48 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-
-  int _counter = 0;
   String _proverb = 'John 3:16 - For God so loved the world...';
   bool _isLoading = false;
   String? _errorMessage;
-  final _service = ProverbService();
+  String? explanation;
+
+
+  late final ProverbService _service;
+  late final GptService gptService;
+
 
   @override
   void initState() {
     super.initState();
     // You could fetch data here if needed
-     _fetchVerseData();
+    gptService = GptService(dotenv.env['OPENAI_API_KEY']!);
+   _service = ProverbService(dotenv.env['ESV_API_KEY']!);
+
+    _fetchVerseData();
   }
 
   // Example of how to handle API requests with error handling
   Future<void> _fetchVerseData() async {
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    try {
-      // Example of how you might fetch data
-      // final response = await http.get(Uri.parse('https://api.example.com/verse'));
-      // 
-      // if (response.statusCode == 200) {
-      //   final data = jsonDecode(response.body);
-      //   setState(() {
-      //     _verseText = data['verse'];
-      //     _isLoading = false;
-      //   });
-      // } else {
-      //   throw Exception('Failed to load verse: ${response.statusCode}');
-      // }
-
-
       try {
         final result = await _service.getRandomProverb();
-        setState(() => _proverb = result);
+        final gptResponse = await gptService.explainVerse(result);
+
+        setState((){ _proverb = result;
+        explanation = gptResponse;
+
+        });
+
       } catch (e) {
-        setState(() => _proverb = "Error: $e");
+        _errorMessage = 'Error: ${e.toString()}';
+
       }
+
       setState(() => _isLoading = false);
 
 
@@ -129,24 +131,9 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         _isLoading = false;
       });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error: ${e.toString()}';
-        _isLoading = false;
-      });
-    }
-  }
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+    }
+
 
   @override
   Widget build(BuildContext context) {
@@ -199,39 +186,53 @@ class _MyHomePageState extends State<MyHomePage> {
           // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
+
           children: <Widget>[
-
             const SizedBox(height: 10),
-
             const SizedBox(height: 20),
+
             if (_isLoading)
+
               const CircularProgressIndicator(color: Colors.white)
-            else if (_errorMessage != null)
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  _errorMessage!,
-                  style: TextStyle(fontSize: 16, color: Colors.white, fontStyle: FontStyle.italic),
-                  textAlign: TextAlign.center,
-                ),
-              )
-            else
+
+
+            else if (  _proverb != null || explanation != null)
               Container(
                 padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
+
+                child: Column(
+
+    children: [
+                  Text(
                   _proverb,
                   style: TextStyle(fontSize: 16, color: Colors.white, fontStyle: FontStyle.italic),
                   textAlign: TextAlign.center,
                 ),
-              ),
+                  const SizedBox(height: 20),
+                  if (explanation != null)
+                    Text(
+                      explanation!,
+                      style: const TextStyle(fontSize: 16),
+                      textAlign: TextAlign.center,
+                    ),]
+              ),)  else if (_errorMessage != null)
+
+                Container(
+                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _errorMessage!,
+                    style: TextStyle(fontSize: 16, color: Colors.white, fontStyle: FontStyle.italic),
+                    textAlign: TextAlign.center,
+                  ),
+                )
           ],
             ),
           ),
@@ -239,9 +240,9 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _fetchVerseData,
-        child: const Icon(Icons.refresh),
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
+        child: const Icon(Icons.refresh),
       ),
     );
   }
