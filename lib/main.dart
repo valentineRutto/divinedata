@@ -3,6 +3,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'services/proverb_service.dart';
+
 
 void main() {
   // Set up error handling
@@ -52,7 +54,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Divine Data App'),
+      home: const MyHomePage(title: 'Divine Data '),
     );
   }
 
@@ -77,16 +79,18 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+
   int _counter = 0;
-  String _verseText = 'John 3:16 - For God so loved the world...';
+  String _proverb = 'John 3:16 - For God so loved the world...';
   bool _isLoading = false;
   String? _errorMessage;
+  final _service = ProverbService();
 
   @override
   void initState() {
     super.initState();
     // You could fetch data here if needed
-    // _fetchVerseData();
+     _fetchVerseData();
   }
 
   // Example of how to handle API requests with error handling
@@ -109,7 +113,17 @@ class _MyHomePageState extends State<MyHomePage> {
       // } else {
       //   throw Exception('Failed to load verse: ${response.statusCode}');
       // }
-      
+
+
+      try {
+        final result = await _service.getRandomProverb();
+        setState(() => _proverb = result);
+      } catch (e) {
+        setState(() => _proverb = "Error: $e");
+      }
+      setState(() => _isLoading = false);
+
+
       // Simulating a delay
       await Future.delayed(Duration(seconds: 1));
       setState(() {
@@ -186,20 +200,9 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-              style: TextStyle(color: Colors.white, fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
+
             const SizedBox(height: 10),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 48,
-              ),
-            ),
+
             const SizedBox(height: 20),
             if (_isLoading)
               const CircularProgressIndicator(color: Colors.white)
@@ -224,7 +227,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  _verseText,
+                  _proverb,
                   style: TextStyle(fontSize: 16, color: Colors.white, fontStyle: FontStyle.italic),
                   textAlign: TextAlign.center,
                 ),
@@ -234,14 +237,12 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        icon: const Icon(Icons.add),
-        label: const Text('Increment'),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _fetchVerseData,
+        child: const Icon(Icons.refresh),
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 }
